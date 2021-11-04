@@ -1,6 +1,8 @@
 package net.globalrelay.vertx.broker.assets;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.junit5.VertxExtension;
@@ -34,11 +36,15 @@ public class TestAssetsRestApi {
             testContext.succeeding(
                 response -> {
                   var json = response.bodyAsJsonArray();
-                  LOG.info("Response: ", json);
+                  LOG.info("Response: {}", json);
                   assertEquals(
                       "[{\"name\":\"AAPL\"},{\"name\":\"AMZN\"},{\"name\":\"FB\"},{\"name\":\"GOOG\"},{\"name\":\"MFST\"},{\"name\":\"NFLX\"},{\"name\":\"TSLA\"}]",
                       json.encode());
                   assertEquals(200, response.statusCode());
+                  assertEquals(
+                      HttpHeaderValues.APPLICATION_JSON.toString(),
+                      response.getHeader(HttpHeaders.CONTENT_TYPE.toString()));
+                  assertEquals("my-value", response.getHeader("my-value"));
                   testContext.completeNow();
                 }));
   }

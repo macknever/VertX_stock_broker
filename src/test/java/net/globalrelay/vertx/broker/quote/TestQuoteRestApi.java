@@ -34,7 +34,7 @@ public class TestQuoteRestApi {
             testContext.succeeding(
                 response -> {
                   var json = response.bodyAsJsonObject();
-                  LOG.info("Response: ", json);
+                  LOG.info("Response: ", json.encode());
                   assertEquals("{name=AMZN}", json.getString("assets"));
                   assertEquals(200, response.statusCode());
                   testContext.completeNow();
@@ -52,7 +52,7 @@ public class TestQuoteRestApi {
             testContext.succeeding(
                 response -> {
                   var json = response.bodyAsJsonObject();
-                  LOG.info("Response: ", json);
+                  LOG.info("Response: ", json.encode());
                   assertEquals(
                       "{\"message\":\"quote for assetUNKNOWN not available\",\"path\":\"/quote/UNKNOWN\"}",
                       json.encode());

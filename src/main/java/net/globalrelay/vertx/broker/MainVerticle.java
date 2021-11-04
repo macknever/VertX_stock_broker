@@ -1,14 +1,8 @@
 package net.globalrelay.vertx.broker;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import net.globalrelay.vertx.broker.assets.AssetsRestApi;
-import net.globalrelay.vertx.broker.qoutes.QuoteRestApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,43 +16,38 @@ public class MainVerticle extends AbstractVerticle {
         error -> {
           LOG.error("unhandled: ", error);
         });
-    vertx.deployVerticle(
-        new MainVerticle(),
-        ar -> {
-          if (ar.failed()) {
-            LOG.error("Failed to deploy: ", ar.cause());
-          }
-          return;
-        });
-    LOG.info("Deployed {}", MainVerticle.class.getName());
+    vertx
+        .deployVerticle(new MainVerticle())
+        .onFailure(
+            error -> {
+              LOG.error("Failed to deploy :", error);
+            })
+        .onSuccess(
+            id -> {
+              LOG.info("Deployed {} with id {}", MainVerticle.class.getName(), id);
+            });
   }
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
 
-    final Router restApi = Router.router(vertx);
-    restApi.route().failureHandler(handleFailure());
-
-    AssetsRestApi.attach(restApi);
-    QuoteRestApi.attach(restApi);
-
     vertx
-        .createHttpServer()
-        .requestHandler(restApi)
-        .exceptionHandler(error -> LOG.error("HTTP Server error: ", error))
-        .listen(
-            PORT,
-            http -> {
-              if (http.succeeded()) {
-                startPromise.complete();
-                System.out.println("HTTP server started on port 8888");
-              } else {
-                startPromise.fail(http.cause());
-              }
-            });
+        .deployVerticle(
+            RestApiVerticle.class.getName(), new DeploymentOptions().setInstances(processors()))
+        .onSuccess(
+            id -> {
+              LOG.info("Deployed {} with id {}", RestApiVerticle.class.getName(), id);
+              startPromise.complete();
+            })
+        .onFailure(startPromise::fail);
   }
 
-  private Handler<RoutingContext> handleFailure() {
+  private int processors() {
+    System.out.println(Runtime.getRuntime().availableProcessors());
+    return Math.max(1, Runtime.getRuntime().availableProcessors());
+  }
+
+  public static Handler<RoutingContext> handleFailure() {
     return errorContext -> {
       if (errorContext.response().ended()) {
         return;
